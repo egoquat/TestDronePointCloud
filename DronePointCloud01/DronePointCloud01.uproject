@@ -1,0 +1,22 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "{172088C7-42A3-2A2E-DE72-0989ACD544EA}",
+	"Category": "",
+	"Description": "",
+	"Modules": [
+		{
+			"Name": "DronePointCloud01",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		}
+	],
+	"Plugins": [
+		{
+			"Name": "ModelingToolsEditorMode",
+			"Enabled": true,
+			"TargetAllowList": [
+				"Editor"
+			]
+		}
+	]
+}
