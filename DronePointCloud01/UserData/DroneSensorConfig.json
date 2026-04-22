@@ -1,0 +1,20 @@
+{
+  "lidar": {
+    "type": "rotating_3d",
+    "channels": 16,
+    "rpm": 600,
+    "h_fov_deg": 360,
+    "v_fov_deg": 30,
+    "range_m": { "min": 1.0, "max": 120.0 },
+    "range_noise_std_m": 0.03,
+    "dropout_rate": 0.02,
+    "intensity": true,
+    "pose": { "x": 0.00, "y": 0.00, "z": -0.12 }
+  },
+  "camera": {
+    "fov_deg": 180,
+    "resolution": [1920, 1080],
+    "fps": 30,
+    "distortion": "fisheye"
+  }
+}
