@@ -20,7 +20,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCaptureRT(   const AActor* ac
                                                                 const FRotator& relativeRotator,
                                                                 float fovYaw,
                                                                 int resX, int resY,
-                                                                bool bCaptureEveryFrame,
+                                                                bool bCaptureEveryFrameRequest,
                                                                 UTextureRenderTarget2D*& renderTargetOut,
                                                                 FVector* relativePos,
                                                                 const ESceneCaptureSource* typeSceneCapture)
@@ -35,7 +35,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCaptureRT(   const AActor* ac
 
     capture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
     capture->bCaptureOnMovement = true;
-    capture->bCaptureEveryFrame = bCaptureEveryFrame;
+    capture->bCaptureEveryFrame = bCaptureEveryFrameRequest;
     capture->bAlwaysPersistRenderingState = true;
     capture->bEnableClipPlane = true;
     
@@ -54,7 +54,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCaptureRT(   const AActor* ac
 USceneCaptureComponent2D* FSensorCapture::MakeSceneCaptureRTOption( const AActor* actorOwned,
                                                                     float fovYaw,
                                                                     const FIntPoint& res,
-                                                                    bool bCaptureEveryFrame,
+                                                                    bool bCaptureEveryFrameRequest,
                                                                     ESceneCaptureSource typeFinalRT,
                                                                     const FRotator& relativeRotator,
                                                                     FVector* relativePos)
@@ -69,7 +69,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCaptureRTOption( const AActor
     
     capture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
     capture->bCaptureOnMovement = true;
-    capture->bCaptureEveryFrame = bCaptureEveryFrame;
+    capture->bCaptureEveryFrame = bCaptureEveryFrameRequest;
     capture->bAlwaysPersistRenderingState = true;
     capture->bEnableClipPlane = true;
     
@@ -86,7 +86,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCapture(   const AActor* acto
                                                             const FRotator& relativeRotator,
                                                             float fovYaw,
                                                             int resX, int resY,
-                                                            bool bCaptureEveryFrame,
+                                                            bool bCaptureEveryFrameRequest,
                                                             UTextureRenderTarget2D* renderTarget,
                                                             FVector* relativePos,
                                                             const ESceneCaptureSource* typeSceneCapture)
@@ -100,7 +100,7 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCapture(   const AActor* acto
 
     capture->PrimitiveRenderMode = ESceneCapturePrimitiveRenderMode::PRM_RenderScenePrimitives;
     capture->bCaptureOnMovement = true;
-    capture->bCaptureEveryFrame = bCaptureEveryFrame;
+    capture->bCaptureEveryFrame = bCaptureEveryFrameRequest;
     capture->bAlwaysPersistRenderingState = true;
     capture->bEnableClipPlane = true;
     
@@ -119,8 +119,8 @@ USceneCaptureComponent2D* FSensorCapture::MakeSceneCapture(   const AActor* acto
 UTextureRenderTarget2D* FSensorCapture::MakeRT(const AActor* actorOwned, int resX, int resY)
 {
     UTextureRenderTarget2D* renderTarget = NewObject<UTextureRenderTarget2D>(actorOwned->GetRootComponent());
-    //renderTargetOut->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
-    renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8_SRGB;
+    renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
+    //renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
     renderTarget->CompressionSettings = TextureCompressionSettings::TC_Default;
     renderTarget->SRGB = false;
     renderTarget->bAutoGenerateMips = false;
@@ -156,6 +156,36 @@ bool FSensorCapture::IsAngleYawRange(const float angleYawRayIn)
 bool FSensorCapture::IsAngleYawRange(const float angleMin, const float angleMax)
 {
     return IsAngleYawRange(angleMin) || IsAngleYawRange(angleMax);
+}
+
+void FSensorCapture::CaptureRequest(bool bReadAlways, bool bCaptureForce, bool bReadLinearDepthToBitmap)
+{
+    const FTransform& captureTM = CaptureComp->GetComponentTransform();
+    bool isCaptureSceneUpdated = true;
+    if (bCaptureForce == false)
+    {
+        bool isSimilar = IsSimilar(captureTM, SensorTMLastCapture);
+        isCaptureSceneUpdated = (bHasDynamicCaptured == true || isSimilar == false);
+    }
+    
+    SensorTMLastCapture = captureTM;
+    SensorTMInverse = captureTM.Inverse();
+
+    double timeNow = FPlatformTime::Seconds();
+    if (Bitmap.Num() >= 1 && timeNow - TimeLastReadCapture <= FSensorCommon::GTimeDeltaReadPixel) return;
+    if (Bitmap.Num() <= 0
+        || bReadAlways == true
+        || (bReadAlways == false && isCaptureSceneUpdated == true))
+    {
+        FProfiler::Begin(221);
+        FSensorUtility::ReadPixels(RenderTarget, Bitmap);
+        if (bReadLinearDepthToBitmap == true)
+        {
+            FSensorUtility::ReadPixelsLinear(RenderTarget, BitmapLinear);
+        }
+        TimeLastReadCapture = timeNow;
+        FProfiler::End(221);
+    }
 }
 
 void FSensorCapture::ArrangeRay(FCaptureRay& cast, int& indexPack_out)
@@ -236,7 +266,6 @@ FSensorCapture::FSensorCapture(USceneCaptureComponent2D* captureComp)
             SensorTMLastCapture(FTransform::Identity)
 {
     UTextureRenderTarget2D* renderTarget = captureComp->TextureTarget;
-    RenderTargetResource = renderTarget != nullptr ? renderTarget->GameThread_GetRenderTargetResource() : nullptr;
     AngleYawMin = -(captureComp->FOVAngle / 2);
     AngleYawMax = AngleYawMin + captureComp->FOVAngle;
     AnglePitchMin = AnglePitch + (-(AnglePitchRange / 2));
@@ -269,7 +298,6 @@ FSensorCapture::FSensorCapture( const int index,
             AnglePitchRange(fovYaw * ((float)res.Y / (float)res.X)),
             SensorTMLastCapture(FTransform::Identity)
 {
-    RenderTargetResource = renderTarget != nullptr ? renderTarget->GameThread_GetRenderTargetResource() : nullptr;
     AngleYawMin = -(fovYaw / 2);
     AngleYawMax = AngleYawMin + fovYaw;
     AnglePitchMin = AnglePitch + (-(AnglePitchRange / 2));

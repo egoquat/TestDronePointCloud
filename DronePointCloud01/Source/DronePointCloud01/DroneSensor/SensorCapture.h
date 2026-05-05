@@ -20,7 +20,6 @@ struct FSensorCapture
 
     USceneCaptureComponent2D* CaptureComp = nullptr;
     UTextureRenderTarget2D* RenderTarget = nullptr;
-    FTextureRenderTargetResource* RenderTargetResource = nullptr;
     
     double TimeLastReadCapture = 0;
     FRotator SensorRotator;
@@ -33,7 +32,6 @@ struct FSensorCapture
     TArray<FLinearColor> BitmapLinear;
 
     bool bHasDynamicCaptured = false;
-    inline static const int32 ConstCntCapturedAtLeast = 1; 
     int32 CntCapturedFirstForce = 0;
     int32 IteratorIdxForArrangeRay = 0;
 
@@ -41,7 +39,7 @@ struct FSensorCapture
                                                             const FRotator& relativeRotator,
                                                             float fovYaw,
                                                             int resX, int resY,
-                                                            bool bCaptureEveryFrame,
+                                                            bool bCaptureEveryFrameRequest,
                                                             UTextureRenderTarget2D*& renderTargetOut,
                                                             FVector* relativePos = nullptr,
                                                             const ESceneCaptureSource* typeSceneCapture = nullptr);
@@ -50,7 +48,7 @@ struct FSensorCapture
                                                             const AActor* actorOwned,
                                                             float fovYaw,
                                                             const FIntPoint& res,
-                                                            bool bCaptureEveryFrame,
+                                                            bool bCaptureEveryFrameRequest,
                                                             ESceneCaptureSource typeFinalRT,
                                                             const FRotator& relativeRotator,
                                                             FVector* relativePos = nullptr);
@@ -59,7 +57,7 @@ struct FSensorCapture
                                                         const FRotator& relativeRotator,
                                                         float fovYaw,
                                                         int resX, int resY,
-                                                        bool bCaptureEveryFrame,
+                                                        bool bCaptureEveryFrameRequest,
                                                         UTextureRenderTarget2D* renderTarget,
                                                         FVector* relativePos = nullptr,
                                                         const ESceneCaptureSource* typeSceneCapture = nullptr);

@@ -9,8 +9,8 @@ static FReadSurfaceDataFlags CustomShaderUtilityReadPixelFlags(ERangeCompression
 UTextureRenderTarget2D* FCustomShaderUtility::MakeRT(const AActor* actorOwned, int resX, int resY)
 {
     UTextureRenderTarget2D* renderTarget = NewObject<UTextureRenderTarget2D>(actorOwned->GetRootComponent());
-    //renderTargetOut->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
-    renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8_SRGB;
+    renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA16f;
+    //renderTarget->RenderTargetFormat = ETextureRenderTargetFormat::RTF_RGBA8;
     renderTarget->CompressionSettings = TextureCompressionSettings::TC_Default;
     renderTarget->SRGB = false;
     renderTarget->bAutoGenerateMips = false;

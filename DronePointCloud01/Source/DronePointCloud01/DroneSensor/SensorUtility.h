@@ -78,9 +78,12 @@ struct FSensorUtility
     static void SaveTextureToDiskPixels(const FIntPoint& res, const TArray<FColor>& bitmap, const FString& FilePath);
     static void SavePixelsToDiskDepthTest(const FIntPoint& res, const TArray<FLinearColor>& bitmapDepth, const FString& FilePath);
     static void SaveTextureToDisk(UTextureRenderTarget2D* renderTargetTex, const FString& FilePath);
+    
+    static bool ReadPixelsGameThread(UTextureRenderTarget2D* renderTarget, TArray<FColor>& outPixels);
+    static bool ReadPixelsLinearGameThread(UTextureRenderTarget2D* renderTarget, TArray<FLinearColor>& outPixels);
+    
     static bool ReadPixels(UTextureRenderTarget2D* renderTargetTex, TArray<FColor>& bitmapOut);
-    static bool ReadPixels(FTextureRenderTargetResource* renderTargetRsc, TArray<FColor>& bitmapOut);
-    static bool ReadPixelsLinear(FTextureRenderTargetResource* renderTargetRsc, TArray<FLinearColor>& bitmapOut);
+    static bool ReadPixelsLinear(UTextureRenderTarget2D* renderTargetTex, TArray<FLinearColor>& bitmapOut);
 
     static float GetLightColorIntensity(FLinearColor& color)
     {

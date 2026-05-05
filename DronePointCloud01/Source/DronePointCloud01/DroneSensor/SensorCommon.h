@@ -6,6 +6,36 @@ struct FColorRatio
     float Ratio;
 };
 
+struct FDetection
+{
+    FVector point;
+    float intensity = 0;
+};
+
+class LidarDetection {
+public:
+    FVector point;
+    float intensity;
+
+    LidarDetection() :
+        point(0.0f, 0.0f, 0.0f), intensity{0.0f} { }
+    LidarDetection(float x, float y, float z, float intensity) :
+        point(x, y, z), intensity{intensity} { }
+    LidarDetection(FVector p, float intensity) :
+        point(p), intensity{intensity} { }
+};
+
+UENUM()
+enum class ESensorType : int8
+{
+    None = -1,
+    Lidar,
+    Radar,
+    Camera,
+    IMU,
+    GNSS,
+    NUM
+};
 
 struct FSensorCommon
 {
@@ -49,17 +79,6 @@ struct FSensorCommon
         FColorRatio{ FColor::Blue, 0.0f },
         FColorRatio{ FColor::Green, 0.35f },
         FColorRatio{ FColor::Red, 1.0f }
-    };
-    
-    enum ESensorType
-    {
-        None = -1,
-        Lidar,
-        Radar,
-        Camera,
-        IMU,
-        GNSS,
-        NUM
     };
     
     struct FCallback
@@ -125,6 +144,11 @@ public:
     inline static const FIntPoint CaptureRes360 = FIntPoint(2048, 512);
     inline static const FIntPoint LidarCaptureResolution = FIntPoint(CaptureRes360.X / CaptureDivFOVAngle, CaptureRes360.Y);
     inline static const float CaptureFOVAngleUnit = 360.0f / (float)CaptureDivFOVAngle;
+
+    inline static const bool GbVisualizeIntensity = true;
+    inline static const float GRatioIntensityCosin = 0.7f;
+    inline static const float GRatioIntensityRefle = 1.0f;
+    inline static const float GRatioIntensityColor = 0.2f;
     
     inline static TMap<ESensorType, FCallbackCollection> CallbackActivations;
     inline static TMap<ESensorType, FCallbackCollection> CallbackDeactivations;
@@ -166,11 +190,11 @@ public:
         }
     }
     
-    static void SetActivateGlobalSensor(uint8 sensorType, bool bActivate)
+    static void SetActivateGlobalSensor(ESensorType sensorType, bool bActivate)
     {
         EnsureGlobalFlags();
-        ensure(GlobalSensorActivates.Contains((ESensorType)sensorType));
-        *(GlobalSensorActivates[(ESensorType)sensorType]) = (int)bActivate;
+        ensure(GlobalSensorActivates.Contains(sensorType));
+        *(GlobalSensorActivates[sensorType]) = (int)bActivate;
     }
 
 public:

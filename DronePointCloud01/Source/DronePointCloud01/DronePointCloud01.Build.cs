@@ -1,5 +1,6 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
+using System.IO;
 using UnrealBuildTool;
 
 public class DronePointCloud01 : ModuleRules
@@ -15,5 +16,19 @@ public class DronePointCloud01 : ModuleRules
 		});
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
+		
+		PrivateIncludePaths .AddRange(new string[] { "DronePointCloud01" });
+		
+		PublicIncludePaths.AddRange(
+			new string[] {
+				Path.Combine(ModuleDirectory, ""),
+			}
+		);
+
+		PrivateIncludePaths.AddRange(
+			new string[] {
+				Path.Combine(ModuleDirectory, ""),
+			}
+		);
 	}
 }

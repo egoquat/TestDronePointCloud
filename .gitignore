@@ -54,6 +54,7 @@ Binaries/*
 Plugins/**/Binaries/*
 
 # Builds
+Build/
 Build/*
 
 # Whitelist PakBlacklist-<BuildConfiguration>.txt files
@@ -80,3 +81,5 @@ Plugins/**/Intermediate/*
 DerivedDataCache/
 DerivedDataCache/*
 DronePointCloud01/Plugins/Developer/RiderLink
+DronePointCloud01/DronePointCloud01.sln.DotSettings.user
+Build/

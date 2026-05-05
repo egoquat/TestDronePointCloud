@@ -3,7 +3,7 @@
 
 #include "SensorCommon.h"
 #include "Engine/Canvas.h"
-#include "LidarDescription.h"
+#include "SensorDescription.h"
 #include "Blueprint/UserWidget.h"
 
 struct FDrawGraphInstance

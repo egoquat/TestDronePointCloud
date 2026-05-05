@@ -61,48 +61,92 @@ void FSensorUtility::SavePixelsToDiskDepthTest( const FIntPoint& res,
 void FSensorUtility::SaveTextureToDisk(UTextureRenderTarget2D* renderTargetTex, const FString& FilePath)
 {
     TArray<FColor> bitmap;
-    FTextureRenderTargetResource* renderTargetResource = renderTargetTex->GameThread_GetRenderTargetResource();
-    if (renderTargetResource == nullptr)
-    {
-        GWarn->Logf(TEXT("SaveTextureToDisk/(renderTargetResource == nullptr)/%s"), *FilePath);
-        return;
-    }
-    
-    renderTargetResource->ReadPixels(bitmap, SensorUtilityReadPixelFlags);
-
+    bool bReadPixels = ReadPixelsGameThread(renderTargetTex, bitmap);
+    ensure(bReadPixels);
     FIntPoint res(renderTargetTex->SizeX, renderTargetTex->SizeY);
     SaveTextureToDiskPixels(res, bitmap, FilePath);
 }
 
+bool FSensorUtility::ReadPixelsGameThread(UTextureRenderTarget2D* renderTarget, TArray<FColor>& outPixels)
+{
+    if (!IsInGameThread())
+    {
+        return false;
+    }
+
+    if (!IsValid(renderTarget))
+    {
+        return false;
+    }
+
+    FTextureRenderTargetResource* resource = renderTarget->GameThread_GetRenderTargetResource();
+    if (resource == nullptr)
+    {
+        return false;
+    }
+
+    const int32 width = renderTarget->SizeX;
+    const int32 height = renderTarget->SizeY;
+
+    if (width <= 0 || height <= 0)
+    {
+        return false;
+    }
+
+    outPixels.Reset();
+    outPixels.SetNumUninitialized(width * height);
+
+    FReadSurfaceDataFlags flags(RCM_UNorm);
+    flags.SetLinearToGamma(false);
+
+    return resource->ReadPixels(outPixels, flags);
+}
+
+bool FSensorUtility::ReadPixelsLinearGameThread(UTextureRenderTarget2D* renderTarget, TArray<FLinearColor>& outPixels)
+{
+    if (!IsInGameThread())
+    {
+        return false;
+    }
+
+    if (!IsValid(renderTarget))
+    {
+        return false;
+    }
+
+    FTextureRenderTargetResource* resource = renderTarget->GameThread_GetRenderTargetResource();
+    if (resource == nullptr)
+    {
+        return false;
+    }
+
+    const int32 width = renderTarget->SizeX;
+    const int32 height = renderTarget->SizeY;
+
+    if (width <= 0 || height <= 0)
+    {
+        return false;
+    }
+
+    outPixels.Reset();
+    outPixels.SetNumUninitialized(width * height);
+
+    FReadSurfaceDataFlags flags(RCM_UNorm);
+    flags.SetLinearToGamma(false);
+
+    return resource->ReadLinearColorPixels(outPixels, flags);
+}
+
 bool FSensorUtility::ReadPixels(UTextureRenderTarget2D* renderTargetTex, TArray<FColor>& bitmapOut)
 {
-    FTextureRenderTargetResource* renderTargetResource = renderTargetTex->GameThread_GetRenderTargetResource();
-    if (renderTargetResource)
-    {
-        bool bRead = renderTargetResource->ReadPixels(bitmapOut, SensorUtilityReadPixelFlags);
-        return bRead;
-    }
-    return false;
+    bool bReadPixels = ReadPixelsGameThread(renderTargetTex, bitmapOut);
+    return bReadPixels;
 }
 
-bool FSensorUtility::ReadPixels(FTextureRenderTargetResource* renderTargetRsc, TArray<FColor>& bitmapOut)
+bool FSensorUtility::ReadPixelsLinear(UTextureRenderTarget2D* renderTargetRsc, TArray<FLinearColor>& bitmapOut)
 {
-    if (renderTargetRsc)
-    {
-        bool bRead = renderTargetRsc->ReadPixels(bitmapOut, SensorUtilityReadPixelFlags);
-        return bRead;
-    }
-    return false;
-}
-
-bool FSensorUtility::ReadPixelsLinear(FTextureRenderTargetResource* renderTargetRsc, TArray<FLinearColor>& bitmapOut)
-{
-    if (renderTargetRsc)
-    {
-        bool bRead = renderTargetRsc->ReadLinearColorPixels (bitmapOut, SensorUtilityReadPixelFlags);
-        return bRead;
-    }
-    return false;
+    bool bReadPixels = ReadPixelsLinearGameThread(renderTargetRsc, bitmapOut);
+    return bReadPixels;
 }
 
 UTexture2D* FSensorUtility::MakeTextureBitmap(const int width, const int height, const TArray<FColor>& bitmap, UObject* InOuter)

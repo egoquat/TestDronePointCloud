@@ -1,27 +1,43 @@
 #pragma once
 #include "GameFramework/Actor.h"
+#include "SensorCommon.h"
 #include "Sensor.generated.h"
 
-UCLASS(Abstract, hidecategories = (Collision, Attachment, Actor))
+class ADroneActor; 
+
+UCLASS(Abstract)
 class ASensor : public AActor
 {
-  GENERATED_BODY()
+	GENERATED_BODY()
 
 public:
-
-  ASensor(const FObjectInitializer &ObjectInitializer);
-
-  virtual void BeginPlay();
-  
+	ASensor(const FObjectInitializer &ObjectInitializer);
+	void InitializeSensor(ADroneActor* droneActor);
+	void SetActiveSensor(bool bActive = true) { bIsActive = bActive; }
 protected:
-  void Tick(const float DeltaTime);
-  void EndPlay(EEndPlayReason::Type EndPlayReason) override;
-  
-  virtual void TickSensor(const float deltaSecond) {}
+	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+	
+public:
+	virtual void Tick(float DeltaSeconds) override;
+	
+protected:
+	virtual void TickSensor(const float deltaSecond) {}
+	virtual void PreTickSensor(const float DeltaTime) {}
+	virtual void PostTickSensor(const float DeltaTime) {}
 
-  UPROPERTY()
-  bool bIsActive = false;
+protected:
+	UPROPERTY()
+	ESensorType SensorType = ESensorType::None;
 
-private:
-  bool ReadyToTick = false;
+	UPROPERTY()
+	bool bIsActive = true;
+	
+	UPROPERTY()
+	TObjectPtr<UStaticMeshComponent> SensorMesh;
+
+	ADroneActor* DroneActor = nullptr;
+
+	private:
+	bool ReadyToTick = false;
 };
