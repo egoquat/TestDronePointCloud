@@ -37,10 +37,10 @@ struct FLidarSensorDescription : public FSensorDescription
     float RotationFrequencyHZ = 8;
 
     UPROPERTY(EditAnywhere, meta=(ClampMin = "0", ClampMax = "20", UIMin = "0", UIMax = "20"))
-    float UpperFovLimit = 10.0f;
+    float UpperFovLimit = 20.0f;
 
     UPROPERTY(EditAnywhere, meta=(ClampMin = "-45", ClampMax = "-10", UIMin = "-45", UIMax = "-10"))
-    float LowerFovLimit = -30.0f;
+    float LowerFovLimit = -20.0f;
   
     UPROPERTY(EditAnywhere, meta=(ClampMin = "90", ClampMax = "360", UIMin = "90", UIMax = "360"))
     float HorizontalFov = 360.0f;

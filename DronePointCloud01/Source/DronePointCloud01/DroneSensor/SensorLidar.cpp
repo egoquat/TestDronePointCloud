@@ -148,6 +148,7 @@ void ASensorLidar::BeginPlay()
     TraceParams.bReturnPhysicalMaterial = true;
     TraceParams.bReturnFaceIndex = false;
     TraceParams.AddIgnoredActor(this);
+    TraceParams.AddIgnoredActor(DroneActor);
     
     Bitmap.Empty();
     Bitmap.AddZeroed(FSensorCommon::LidarCaptureResolution.X * FSensorCommon::LidarCaptureResolution.X);
@@ -168,7 +169,7 @@ void ASensorLidar::RecreateLaserAngles()
 	const int32 NumberOfLasers = ActiveDescription.ChannelAngles.Num();
 	float angleDelta = 0;
 	float angleSum   = 0;
-	LaserAngles.SetNum(NumberOfLasers, true);
+	LaserAngles.SetNum(NumberOfLasers, EAllowShrinking::Yes);
     
 	float ratio = 0, lastratio = 0;
 	float angleRangeVertical = (ActiveDescription.UpperFovLimit - ActiveDescription.LowerFovLimit);
@@ -233,7 +234,7 @@ void ASensorLidar::ClearLidar()
 	}
 	TestCaptureSingle.CollectRays.Empty();
 	LidarRecordedHits.clear();    
-	TraceParams.ClearIgnoredActors();
+	TraceParams.ClearIgnoredSourceObjects();
 }
 
 FCaptureRay* ASensorLidar::ArrangeRayToAroundCaptureNew(FHitResult& hit, FTransform& tmSensor,
