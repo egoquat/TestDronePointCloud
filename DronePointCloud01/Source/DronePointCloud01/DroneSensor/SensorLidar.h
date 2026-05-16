@@ -46,6 +46,10 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 	
+public:
+	virtual void InitializeSensor(ADroneActor* droneActor) override;
+	
+protected:
 	void RecreateLaserAngles();
 	void RecreateChannelAngles();
 	void UpdateDescriptionToThisSensor();
@@ -58,8 +62,8 @@ protected:
 	void TickCapture(UWorld *World, const float DeltaTime);
 	void TickCaptureTest(UWorld *World, const float DeltaTime);
 	
-	bool PostprocessDetection(FDetection& Detection) const;
-	bool PostprocessDetectionForBinn(FDetection& Detection, const FHitResult& hit, float range, FVector& noise_out);
+	bool PostprocessDetection(FDetection& Detection_inout) const;
+	bool PostprocessDetectionForBinn(FDetection& Detection_inout, const FHitResult& hit, float range, FVector& noise_out);
 	
 	FDetection ComputeDetectionSingleCarla(const FHitResult& HitInfo, const FTransform& SensorTransf) const;
 	void ComputeDetectionSingleBinn(const FHitResult& HitInfo, const FTransform& SensorTransf, FDetection& detection_out) const;

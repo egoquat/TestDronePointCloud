@@ -35,6 +35,11 @@ void ADroneActor::OnActiveDrone(bool bActive)
 	}
 }
 
+void ADroneActor::OnAddSubMeshComponent(UStaticMeshComponent* subsm)
+{
+	PartStaticMeshComponents.AddUnique(subsm);
+}
+
 template <typename SensorType>
 SensorType* ADroneActor::AddSensorInternal(const FSensorDescription& desc)
 {

@@ -132,13 +132,12 @@ struct FCaptureRay
     }
 
     void SetDetectResult(   const float intensity,
-                            const FVector& detectionPoint,
-                            const FTransform& SensorTransform,
+                            const FVector& worldPosition,
                             const bool bIntensityDetectedIn);
     
     void SetDetectResult(   const float intensity,
-                            const FVector& detectionPoint,
-                            const FTransform& SensorTransform,
+                            const FVector& localPosition,
+                            const FVector& worldPosition,
                             const bool bIntensityDetectedIn,
                             const TArray<FColorRatio>& intensityColorTable);
 

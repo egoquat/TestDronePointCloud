@@ -143,12 +143,6 @@ void ASensorLidar::BeginPlay()
 
     AngleHorizontalCurrent = AngleHorizontalStart = 0.0f;
     AngleHAbsCache = AngleDraw360CacheStart = AngleDraw360Cache = 0.0f;
-
-    TraceParams.bTraceComplex = true;
-    TraceParams.bReturnPhysicalMaterial = true;
-    TraceParams.bReturnFaceIndex = false;
-    TraceParams.AddIgnoredActor(this);
-    TraceParams.AddIgnoredActor(DroneActor);
     
     Bitmap.Empty();
     Bitmap.AddZeroed(FSensorCommon::LidarCaptureResolution.X * FSensorCommon::LidarCaptureResolution.X);
@@ -162,6 +156,22 @@ void ASensorLidar::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	ClearLidar();
+}
+
+void ASensorLidar::InitializeSensor(ADroneActor* droneActor)
+{
+	Super::InitializeSensor(droneActor);
+	
+	TraceParams.bTraceComplex = true;
+	TraceParams.bReturnPhysicalMaterial = true;
+	TraceParams.bReturnFaceIndex = false;
+	TraceParams.AddIgnoredActor(this);
+	TraceParams.AddIgnoredActor(DroneActor);
+	for (int i = 0; i < DroneActor->GetPartStaticMeshComponents().Num(); ++i)
+	{
+		const UStaticMeshComponent* meshComponent = DroneActor->GetPartStaticMeshComponents()[i];
+		TraceParams.AddIgnoredComponent(meshComponent);
+	}
 }
 
 void ASensorLidar::RecreateLaserAngles() 
@@ -333,19 +343,19 @@ void ASensorLidar::TickCaptureTest(UWorld* World, const float DeltaTime)
 	
 }
 
-bool ASensorLidar::PostprocessDetection(FDetection& Detection) const
+bool ASensorLidar::PostprocessDetection(FDetection& Detection_inout) const
 {
 	if (ActiveDescription.bUseLidarNoise == true && ActiveDescription.NoiseStdDev > std::numeric_limits<float>::epsilon()) {
-		const auto ForwardVector = Detection.point.GetSafeNormal();
+		const auto ForwardVector = Detection_inout.DetectPosition.GetSafeNormal();
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::normal_distribution<double> d(0.0, ActiveDescription.NoiseStdDev);
 		double normaldistribution = d(gen);
 		const auto Noise = ForwardVector * normaldistribution;
-		Detection.point += Noise;
+		Detection_inout.AddNoiseToDetectPosition(Noise);
 	}
 
-	const float Intensity = Detection.intensity;
+	const float Intensity = Detection_inout.DetectIntensity;
 	if(Intensity > ActiveDescription.DropOffIntensityLimit)
 	{
 		return true;
@@ -358,7 +368,7 @@ bool ASensorLidar::PostprocessDetection(FDetection& Detection) const
 	}
 }
 
-bool ASensorLidar::PostprocessDetectionForBinn(FDetection& Detection, const FHitResult& hit, float range, FVector& noise_out)
+bool ASensorLidar::PostprocessDetectionForBinn(FDetection& Detection_inout, const FHitResult& hit, float range, FVector& noise_out)
 {
 	// Tick Noise 
     if (ActiveDescription.bUseLidarNoise == true)
@@ -384,12 +394,13 @@ bool ASensorLidar::PostprocessDetectionForBinn(FDetection& Detection, const FHit
         // Vector3D noise(xRand, yRand, zRand);
         // Detection.point += noise;
 
-        FVector direction = Detection.point;
+        FVector direction = Detection_inout.DetectPosition;
         float len = direction.Length();
         direction /= len;
         float rangeError = FMath::RandRange(-noiseDistribution, noiseDistribution);
-        Detection.point += (direction * rangeError);
-        noise_out = Detection.point;
+    	FVector noiseError = (direction * rangeError);
+        Detection_inout.AddNoiseToDetectPosition(noiseError);
+        noise_out = Detection_inout.DetectPosition;
 
         //GLog->Logf(TEXT("distance:%f, noiseStdDev:%f"), distance, noiseStdDev);
     }
@@ -419,7 +430,7 @@ bool ASensorLidar::PostprocessDetectionForBinn(FDetection& Detection, const FHit
     //}
     //// Tick Noise //
 
-    const float Intensity = Detection.intensity;
+    const float Intensity = Detection_inout.DetectIntensity;
     if(Intensity > ActiveDescription.DropOffIntensityLimit)
     {
         return true;
@@ -436,25 +447,26 @@ FDetection ASensorLidar::ComputeDetectionSingleCarla(const FHitResult& HitInfo, 
 {
 	FDetection Detection;
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	Detection.point = SensorTransf.Inverse().TransformPosition(HitPoint);
+	Detection.DetectPosition = SensorTransf.Inverse().TransformPosition(HitPoint);
+	Detection.DetectWorldPosition = HitPoint;
 
-	const float Distance = Detection.point.Length();
+	const float Distance = Detection.DetectPosition.Length();
 
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;
 	const float AbsAtm = exp(-AttenAtm * Distance * 0.01f);
 
 	const float IntRec = AbsAtm;
 
-	Detection.intensity = IntRec;
+	Detection.DetectIntensity = IntRec;
 	return Detection;
 }
 
 void ASensorLidar::ComputeDetectionSingleBinn(const FHitResult& HitInfo, const FTransform& SensorTransf, FDetection& detection_out) const
 {
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	detection_out.point  = SensorTransf.Inverse().TransformPosition(HitPoint);
+	detection_out.DetectPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
 
-	const float Distance = detection_out.point.Length();
+	const float Distance = detection_out.DetectPosition.Length();
 
 	//거리에 따른 대기 감쇄
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;
@@ -475,7 +487,7 @@ void ASensorLidar::ComputeDetectionSingleBinn(const FHitResult& HitInfo, const F
 						* ((cosTh * ActiveDescription.RatioIntensityCosin) + (1.0f - ActiveDescription.RatioIntensityCosin))
 						* ((matRef * ActiveDescription.RatioIntensityRefle) + (1.0f - ActiveDescription.RatioIntensityRefle))
 						* ((colorintensity * ActiveDescription.RatioIntensityColor) + (1.0f - ActiveDescription.RatioIntensityColor));
-	detection_out.intensity = IntRec;
+	detection_out.DetectIntensity = IntRec;
 }
 
 void ASensorLidar::ComputeAndSaveDetectionsCarla(const FTransform& SensorTransform)
@@ -498,7 +510,7 @@ void ASensorLidar::ComputeAndSaveDetectionsCarla(const FTransform& SensorTransfo
 			{
 				PointsPerChannel[idxChannel]--;
 			}   
-			AroundCaptures[idxCapture].CollectRays[idxRay].SetDetectResult(Detection.intensity, Detection.point, SensorTransform, bDetected);
+			AroundCaptures[idxCapture].CollectRays[idxRay].SetDetectResult(Detection.DetectIntensity, Detection.DetectWorldPosition, bDetected);
 		}
 	}
 }
@@ -549,7 +561,7 @@ void ASensorLidar::ComputeAndSaveDetectionsBinn(const FTransform& SensorTransfor
                 PointsPerChannel[idxChannel]--;
             }
             AroundCaptures[idxCapture].CollectRays[idxRay].SetDetectResult(
-                    Detection.intensity,Detection.point, SensorTransform, bDetected, FSensorCommon::IntensityColors);
+                    Detection.DetectIntensity, Detection.DetectPosition, Detection.DetectWorldPosition, bDetected, FSensorCommon::IntensityColors);
         }
 
         CompletedCount.IncrementExchange();
@@ -949,9 +961,9 @@ void ASensorLidar::ResetLidarRecordedHits(uint32_t Channels, uint32_t MaxPointsP
 void ASensorLidar::ComputeDetectionSingle(const FHitResult& HitInfo, const FTransform& SensorTransf, FDetection& detection_out) const
 {
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	detection_out.point  = SensorTransf.Inverse().TransformPosition(HitPoint);
+	detection_out.DetectPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
 
-	const float Distance = detection_out.point.Length();
+	const float Distance = detection_out.DetectPosition.Length();
 
 	//거리에 따른 대기 감쇄
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;
@@ -972,5 +984,5 @@ void ASensorLidar::ComputeDetectionSingle(const FHitResult& HitInfo, const FTran
 						* ((cosTh * ActiveDescription.RatioIntensityCosin) + (1.0f - ActiveDescription.RatioIntensityCosin))
 						* ((matRef * ActiveDescription.RatioIntensityRefle) + (1.0f - ActiveDescription.RatioIntensityRefle))
 						* ((colorintensity * ActiveDescription.RatioIntensityColor) + (1.0f - ActiveDescription.RatioIntensityColor));
-	detection_out.intensity = IntRec;
+	detection_out.DetectIntensity = IntRec;
 }

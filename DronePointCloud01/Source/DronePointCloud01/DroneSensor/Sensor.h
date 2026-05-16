@@ -12,7 +12,7 @@ class ASensor : public AActor
 
 public:
 	ASensor(const FObjectInitializer &ObjectInitializer);
-	void InitializeSensor(ADroneActor* droneActor);
+	virtual void InitializeSensor(ADroneActor* droneActor);
 	void SetActiveSensor(bool bActive = true) { bIsActive = bActive; }
 protected:
 	virtual void BeginPlay() override;

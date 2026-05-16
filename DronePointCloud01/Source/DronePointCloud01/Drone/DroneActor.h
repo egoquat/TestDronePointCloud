@@ -21,6 +21,14 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void OnActiveDrone(bool bActive);
+	
+	UFUNCTION(BlueprintCallable)
+	void OnAddSubMeshComponent(UStaticMeshComponent* subsm);
+	
+	const TArray<UStaticMeshComponent*>& GetPartStaticMeshComponents()
+	{
+		return PartStaticMeshComponents;
+	}
 
 private:
 	template<typename SensorType>
@@ -33,4 +41,5 @@ protected:
 	
 	TArray<ASensor*> Sensors;
 	TMap<ESensorType, ASensor*> SensorTypes;
+	TArray<UStaticMeshComponent*> PartStaticMeshComponents;
 };

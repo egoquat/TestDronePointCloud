@@ -55,25 +55,24 @@ void FCaptureRay::UpdateLocalToWorldSonar(TArray<FSensorCommon::FTMTrack>& tmTra
 }
 
 void FCaptureRay::SetDetectResult(  const float intensity,
-                                    const FVector& detectionPoint,
-                                    const FTransform& SensorTransform,
+                                    const FVector& worldPosition,
                                     const bool bIntensityDetectedIn)
 {
     ColorIntensity = FSensorVisualizer::GetColorLerpRGB(intensity);
-    Point = SensorTransform.TransformPosition(detectionPoint);
-    PointLocal = detectionPoint;
+    Point = worldPosition;
+    PointLocal = worldPosition;
     bIntensityDetected = bIntensityDetectedIn;
 }
 
 void FCaptureRay::SetDetectResult(  const float intensity,
-                                    const FVector& detectionPoint,
-                                    const FTransform& SensorTransform,
+                                    const FVector& localPosition,
+                                    const FVector& worldPosition,
                                     const bool bIntensityDetectedIn,
                                     const TArray<FColorRatio>& colorTable)
 {
     ColorIntensity = FSensorVisualizer::GetColorLerp(intensity, colorTable);
-    Point = SensorTransform.TransformPosition(detectionPoint);
-    PointLocal = detectionPoint;
+    PointLocal = localPosition;
+    Point = worldPosition;
     bIntensityDetected = bIntensityDetectedIn;
 }
 
