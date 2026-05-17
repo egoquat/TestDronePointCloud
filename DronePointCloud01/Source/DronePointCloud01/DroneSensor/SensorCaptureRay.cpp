@@ -22,7 +22,7 @@ float FCaptureRay::GetSizeDot(const FVector& posCamera, float distanceSt, float 
     //float sizeCurrent = (distanceSt / distCamera * sizeDotSt);
     //sizeCurrent = (MinSize + ((distCamera - MinDist) / (MaxDist - MinDist) * (MaxSize - MinSize))) * sizeDotSt;
     //sizeCurrent = FMath::Clamp(sizeCurrent, MinSize, MaxSize);
-    float distCamera = (Point - posCamera).Size();
+    float distCamera = (PointWorld - posCamera).Size();
     float sizeCurrent = 1.9f + ((distanceSt / distCamera * sizeDotSt)* 0.6f);
     return sizeCurrent;
 }
@@ -59,7 +59,7 @@ void FCaptureRay::SetDetectResult(  const float intensity,
                                     const bool bIntensityDetectedIn)
 {
     ColorIntensity = FSensorVisualizer::GetColorLerpRGB(intensity);
-    Point = worldPosition;
+    PointWorld = worldPosition;
     PointLocal = worldPosition;
     bIntensityDetected = bIntensityDetectedIn;
 }
@@ -72,7 +72,7 @@ void FCaptureRay::SetDetectResult(  const float intensity,
 {
     ColorIntensity = FSensorVisualizer::GetColorLerp(intensity, colorTable);
     PointLocal = localPosition;
-    Point = worldPosition;
+    PointWorld = worldPosition;
     bIntensityDetected = bIntensityDetectedIn;
 }
 

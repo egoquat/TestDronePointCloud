@@ -68,7 +68,7 @@ struct FLidarSensorDescription : public FSensorDescription
 	float NoiseMeanRangeError = 0.0f;
 	
     UPROPERTY(EditAnywhere, meta=(ClampMin = "0.01", ClampMax = "10.0", UIMin = "0.01", UIMax = "10.0"))
-    float SizeBaseDots = 1.2f;
+    float SizeBaseDot = 0.7f;
 	
 	/// Attenuation Rate in the atmosphere in m^-1.
 	UPROPERTY(EditAnywhere, meta=(ClampMin = "0.003", ClampMax = "0.1", UIMin = "0.003", UIMax = "0.1"))

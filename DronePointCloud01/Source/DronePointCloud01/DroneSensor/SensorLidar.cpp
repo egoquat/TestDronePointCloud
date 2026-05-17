@@ -346,7 +346,7 @@ void ASensorLidar::TickCaptureTest(UWorld* World, const float DeltaTime)
 bool ASensorLidar::PostprocessDetection(FDetection& Detection_inout) const
 {
 	if (ActiveDescription.bUseLidarNoise == true && ActiveDescription.NoiseStdDev > std::numeric_limits<float>::epsilon()) {
-		const auto ForwardVector = Detection_inout.DetectPosition.GetSafeNormal();
+		const auto ForwardVector = Detection_inout.DetectLocalPosition.GetSafeNormal();
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::normal_distribution<double> d(0.0, ActiveDescription.NoiseStdDev);
@@ -394,13 +394,13 @@ bool ASensorLidar::PostprocessDetectionForBinn(FDetection& Detection_inout, cons
         // Vector3D noise(xRand, yRand, zRand);
         // Detection.point += noise;
 
-        FVector direction = Detection_inout.DetectPosition;
+        FVector direction = Detection_inout.DetectLocalPosition;
         float len = direction.Length();
         direction /= len;
         float rangeError = FMath::RandRange(-noiseDistribution, noiseDistribution);
     	FVector noiseError = (direction * rangeError);
         Detection_inout.AddNoiseToDetectPosition(noiseError);
-        noise_out = Detection_inout.DetectPosition;
+        noise_out = Detection_inout.DetectLocalPosition;
 
         //GLog->Logf(TEXT("distance:%f, noiseStdDev:%f"), distance, noiseStdDev);
     }
@@ -447,10 +447,10 @@ FDetection ASensorLidar::ComputeDetectionSingleCarla(const FHitResult& HitInfo, 
 {
 	FDetection Detection;
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	Detection.DetectPosition = SensorTransf.Inverse().TransformPosition(HitPoint);
+	Detection.DetectLocalPosition = SensorTransf.Inverse().TransformPosition(HitPoint);
 	Detection.DetectWorldPosition = HitPoint;
 
-	const float Distance = Detection.DetectPosition.Length();
+	const float Distance = Detection.DetectLocalPosition.Length();
 
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;
 	const float AbsAtm = exp(-AttenAtm * Distance * 0.01f);
@@ -464,9 +464,10 @@ FDetection ASensorLidar::ComputeDetectionSingleCarla(const FHitResult& HitInfo, 
 void ASensorLidar::ComputeDetectionSingleBinn(const FHitResult& HitInfo, const FTransform& SensorTransf, FDetection& detection_out) const
 {
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	detection_out.DetectPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
+	detection_out.DetectLocalPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
+	detection_out.DetectWorldPosition = HitPoint;
 
-	const float Distance = detection_out.DetectPosition.Length();
+	const float Distance = detection_out.DetectLocalPosition.Length();
 
 	//거리에 따른 대기 감쇄
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;
@@ -536,7 +537,7 @@ void ASensorLidar::ComputeAndSaveDetectionsBinn(const FTransform& SensorTransfor
                 FCaptureRay& rayHit = capture.CollectRays[idxRay];
                 bool bColorPicked = capture.GetColorFromCapture(
                                                         rayHit.Rot,
-                                                        rayHit.Point,
+                                                        rayHit.PointWorld,
                                                         capture.Bitmap,
                                                         rayHit.Color,
                                                         rayHit.UV);
@@ -561,7 +562,7 @@ void ASensorLidar::ComputeAndSaveDetectionsBinn(const FTransform& SensorTransfor
                 PointsPerChannel[idxChannel]--;
             }
             AroundCaptures[idxCapture].CollectRays[idxRay].SetDetectResult(
-                    Detection.DetectIntensity, Detection.DetectPosition, Detection.DetectWorldPosition, bDetected, FSensorCommon::IntensityColors);
+                    Detection.DetectIntensity, Detection.DetectLocalPosition, Detection.DetectWorldPosition, bDetected, FSensorCommon::IntensityColors);
         }
 
         CompletedCount.IncrementExchange();
@@ -618,7 +619,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
             for (int j = 0; j < hits.size(); ++j)
             {
                 FHitResult& hit = hits[j];
-                LineBatcher->DrawPoint(hit.ImpactPoint, FColor::Cyan, ActiveDescription.SizeBaseDots, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
+                LineBatcher->DrawPoint(hit.ImpactPoint, FColor::Cyan, ActiveDescription.SizeBaseDot, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
             }
         }
         return;
@@ -631,11 +632,11 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
             FVector locStartCapture = TestCaptureSingle.CaptureComp->GetComponentLocation();
             FVector locEndCapture = locStartCapture + (TestCaptureSingle.CaptureComp->GetForwardVector() * 500);
             LineBatcher->DrawPoint(locStartCapture, FLinearColor::Blue, 20.0f, SDPG_Foreground);
-            LineBatcher->DrawLine(locStartCapture, locEndCapture, FLinearColor::Red, SDPG_Foreground, 2.0f, ActiveDescription.SizeBaseDots);
+            LineBatcher->DrawLine(locStartCapture, locEndCapture, FLinearColor::Red, SDPG_Foreground, 2.0f, ActiveDescription.SizeBaseDot);
             
             for (int i = 1; i < TestCaptureRays.Num(); ++i)
             {
-                LineBatcher->DrawLine(TestCaptureRays[i].From, TestCaptureRays[i].Point, FLinearColor(1,1,0, 0.5f), SDPG_Foreground, 1.0f, ActiveDescription.SizeBaseDots);   
+                LineBatcher->DrawLine(TestCaptureRays[i].From, TestCaptureRays[i].PointWorld, FLinearColor(1,1,0, 0.5f), SDPG_Foreground, 1.0f, ActiveDescription.SizeBaseDot);   
             }   
         }
 
@@ -644,7 +645,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
             for (int i = 0; i < TestCaptureRays.Num(); ++i)
             {
                 FCaptureRay& cast = TestCaptureRays[i];
-                LineBatcher->DrawPoint(cast.Point, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                LineBatcher->DrawPoint(cast.PointWorld, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
             }
         }
         else
@@ -654,7 +655,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 for (int i = 0; i < TestCaptureRays.Num(); ++i)
                 {
                     FCaptureRay& cast = TestCaptureRays[i];
-                    LineBatcher->DrawPoint(cast.Point, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                    LineBatcher->DrawPoint(cast.PointWorld, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
                 }   
             }
             else
@@ -662,7 +663,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 for (int i = 0; i < TestCaptureRays.Num(); ++i)
                 {
                     FCaptureRay& cast = TestCaptureRays[i];
-                    LineBatcher->DrawPoint(cast.Point, cast.ColorSemantic, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                    LineBatcher->DrawPoint(cast.PointWorld, cast.ColorSemantic, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
                 }
             }   
         }
@@ -674,7 +675,6 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
         FRotator rotSensor = tmSensorForCapture.Rotator();
         rotSensor.Yaw += 90.0f;
         tmSensorForCapture.SetRotation(rotSensor.Quaternion());
-        FTransform invtm = tmSensorForCapture.Inverse();
         
         FTransform tmSensor = GetTransform();
         //FRotator rotSensorTrack = rotSensor;
@@ -693,9 +693,8 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 
                 if (Index360Iterator >= Index360Capacity) break;
                 index360 = Index360Iterator++;
-                ray.UpdateLocalToWorld(tmSensor);
                 DrawCircleRays[index360] = ray;
-                DrawUIRayPoints[index360] = FVector2D(invtm.TransformPosition(ray.Point));
+                DrawUIRayPoints[index360] = FVector2D(ray.PointWorld);
                 //DrawUIRayPoints[index360] = FVector2D(ray.PointLocal);
                 DrawUIRayColors[index360] = ActiveDescription.bVisualizeIntensity == true ? ray.ColorIntensity : ray.Color;
             }
@@ -745,8 +744,8 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 {
                     FCaptureRay& cast = DrawCircleRays[i];
                     //if (ray.bPicked == false || ray.bIntensityDetected == false) continue;
-                    LineBatcher->DrawPoint(cast.Point, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
-                    //LineBatcher->DrawPoint(ray.hit.ImpactPoint, ray.ColorIntensity, ActiveDescription.SizeBaseDots, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
+                    LineBatcher->DrawPoint(cast.PointWorld, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
+                    //LineBatcher->DrawPoint(ray.hit.ImpactPoint, ray.ColorIntensity, ActiveDescription.SizeBaseDot, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
                 }
                 FProfiler::End(44);
             }
@@ -756,8 +755,8 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 {
                     FCaptureRay& cast = DrawCircleRays[i];
                     //if (ray.bPicked == false || ray.bIntensityDetected == false) continue;
-                    LineBatcher->DrawPoint(cast.Point, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
-                    //LineBatcher->DrawPoint(ray.hit.ImpactPoint, ray.Color, ActiveDescription.SizeBaseDots, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
+                    LineBatcher->DrawPoint(cast.PointWorld, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
+                    //LineBatcher->DrawPoint(ray.hit.ImpactPoint, ray.Color, ActiveDescription.SizeBaseDot, FSensorUtility::DepthPriorityDraw, SecondDrawDefault);
                 }
             }   
         }
@@ -773,7 +772,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                 {
                     FCaptureRay& cast = capture.CollectRays[i];
                     if (cast.bPicked == false || cast.bIntensityDetected == false) continue;
-                    LineBatcher->DrawPoint(cast.Point, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                    LineBatcher->DrawPoint(cast.PointWorld, cast.ColorIntensity, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
                 }
             }
         }
@@ -788,7 +787,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                     {
                         FCaptureRay& cast = capture.CollectRays[i];
                         if (cast.bPicked == false) continue;
-                        LineBatcher->DrawPoint(cast.Point, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                        LineBatcher->DrawPoint(cast.PointWorld, cast.Color, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
                     }
                 }
             }
@@ -801,7 +800,7 @@ void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTi
                     {
                         FCaptureRay& cast = capture.CollectRays[i];
                         if (cast.bPicked == false) continue;
-                        LineBatcher->DrawPoint(cast.Point, cast.ColorSemantic, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDots), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
+                        LineBatcher->DrawPoint(cast.PointWorld, cast.ColorSemantic, cast.GetSizeDot(posCamera, DistanceDotSt, ActiveDescription.SizeBaseDot), FSensorUtility::DepthPriorityDraw, SecondDrawDefault);   
                     }
                 }
             }   
@@ -961,9 +960,9 @@ void ASensorLidar::ResetLidarRecordedHits(uint32_t Channels, uint32_t MaxPointsP
 void ASensorLidar::ComputeDetectionSingle(const FHitResult& HitInfo, const FTransform& SensorTransf, FDetection& detection_out) const
 {
 	const FVector HitPoint = HitInfo.ImpactPoint;
-	detection_out.DetectPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
+	detection_out.DetectLocalPosition  = SensorTransf.Inverse().TransformPosition(HitPoint);
 
-	const float Distance = detection_out.DetectPosition.Length();
+	const float Distance = detection_out.DetectLocalPosition.Length();
 
 	//거리에 따른 대기 감쇄
 	const float AttenAtm = ActiveDescription.AtmospAttenRate;

@@ -37,7 +37,7 @@ bool FLidarSensorDescJsonParser::LoadFromJsonFile(
 	TryGetDouble(JsonObject, TEXT("NoiseCo0Curve"), OutDescription.NoiseCo0Curve);
 	TryGetFloat(JsonObject, TEXT("NoiseMeanRangeError"), OutDescription.NoiseMeanRangeError);
 
-	TryGetFloat(JsonObject, TEXT("SizeBaseDots"), OutDescription.SizeBaseDots);
+	TryGetFloat(JsonObject, TEXT("SizeBaseDot"), OutDescription.SizeBaseDot);
 	TryGetFloat(JsonObject, TEXT("AtmospAttenRate"), OutDescription.AtmospAttenRate);
 	TryGetFloat(JsonObject, TEXT("DropOffGenRate"), OutDescription.DropOffGenRate);
 	TryGetFloat(JsonObject, TEXT("DropOffIntensityLimit"), OutDescription.DropOffIntensityLimit);

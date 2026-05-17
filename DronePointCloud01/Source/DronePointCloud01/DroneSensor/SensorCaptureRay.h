@@ -7,7 +7,7 @@
 struct FCaptureRay
 {
     FVector From;
-    FVector Point;
+    FVector PointWorld;
     FVector PointLocal;
     FRotator Rot;
     FVector DirLocal;
@@ -31,14 +31,14 @@ struct FCaptureRay
                 const FColor& colorSemantic,
                 FIntPoint& uv )
     {
-        From = from; Point = point; Rot = rot; Color = color; ColorSemantic = colorSemantic; UV = uv;
+        From = from; PointWorld = point; Rot = rot; Color = color; ColorSemantic = colorSemantic; UV = uv;
         bIntensityDetected = false;
     }
 
     float GetSizeDot(const FVector& posCamera, float distanceSt, float sizeDotSt);
     void UpdateLocalToWorld(const FTransform& tmSensor)
     {
-        Point = tmSensor.TransformPosition(PointLocal);
+        PointWorld = tmSensor.TransformPosition(PointLocal);
     }
 
     void UpdateLocalToWorldDistortAB(const FTransform& tm01, const FTransform& tm02)
@@ -155,8 +155,8 @@ struct FCaptureRay
         FIntPoint uv;
         hitResult.Item = 0;
         Set(hitResult.TraceStart, hitResult.ImpactPoint, (hitResult.TraceEnd - hitResult.TraceStart).Rotation(), FColor(), colorSemantic, uv);
-        PointLocal = tmSensor.InverseTransformPosition(Point);
-        DirLocal = Point; DirLocal.Normalize();
+        PointLocal = tmSensor.InverseTransformPosition(PointWorld);
+        DirLocal = PointWorld; DirLocal.Normalize();
         float ratio = FMath::Clamp(((float)((double)hitResult.FaceIndex / (double)FSensorCommon::MaxInt)), 0.0f, 1.0f);
         ratio = ratio > 0.5f ? ratio - 0.5f : ratio + 0.5f;
         RatioOnAround = FMath::Clamp(ratio, 0.0f, 1.0f);

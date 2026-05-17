@@ -8,13 +8,13 @@ struct FColorRatio
 
 struct FDetection
 {
-    FVector DetectPosition;
+    FVector DetectLocalPosition;
     FVector DetectWorldPosition;
     float DetectIntensity = 0;
     
     void AddNoiseToDetectPosition(const FVector& noiseAdd)
     {
-        DetectPosition += noiseAdd;
+        DetectLocalPosition += noiseAdd;
         DetectWorldPosition += noiseAdd;
     }
 };
