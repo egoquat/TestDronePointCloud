@@ -23,6 +23,8 @@ void ADroneActor::BeginPlay()
 	}
 	
 	AddSensorLidar(lidarSensorDescriptionTest);
+	
+	SetActiveDrone(bIsStartDefaultActor);	
 }
 
 void ADroneActor::Tick(float DeltaTime)
@@ -30,7 +32,7 @@ void ADroneActor::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 }
 
-void ADroneActor::OnActiveDrone(bool bActive)
+void ADroneActor::SetActiveDrone(bool bActive)
 {
 	for (int i = 0; i < Sensors.Num(); i++)
 	{

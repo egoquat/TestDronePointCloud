@@ -37,7 +37,7 @@
   "ResolutionHorizontal": 512,
   "RangeMin": 80.0,
   "RangeMax": 10000.0,
-  "RotationFrequencyHZ": 8.0,
+  "RotationFrequencyHZ": 3.0,
   "UpperFovLimit": 10.0,
   "LowerFovLimit": -30.0,
   "HorizontalFov": 360.0,

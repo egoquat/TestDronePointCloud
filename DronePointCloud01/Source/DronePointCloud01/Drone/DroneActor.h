@@ -19,8 +19,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	
-	UFUNCTION(BlueprintCallable)
-	void OnActiveDrone(bool bActive);
+	void SetActiveDrone(bool bActive);
 	
 	UFUNCTION(BlueprintCallable)
 	void OnAddSubMeshComponent(UStaticMeshComponent* subsm);
@@ -42,4 +41,8 @@ protected:
 	TArray<ASensor*> Sensors;
 	TMap<ESensorType, ASensor*> SensorTypes;
 	TArray<UStaticMeshComponent*> PartStaticMeshComponents;
+	
+public:
+	UPROPERTY(EditAnywhere)
+	bool bIsStartDefaultActor = false;
 };
