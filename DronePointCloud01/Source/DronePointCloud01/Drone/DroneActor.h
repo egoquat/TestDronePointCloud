@@ -37,7 +37,7 @@ protected:
 	ASensorLidar* AddSensorLidar(const FLidarSensorDescription& desc);
 
 protected:
-	FString FilePathSensorLidarDesc = FPaths::ProjectDir() + TEXT("/UserData/SensorDescLidar01.json");
+	FString FilePathSensorLidarDesc = FPaths::ProjectDir() + TEXT("UserData/SensorDescLidar01.json");
 	
 	TArray<ASensor*> Sensors;
 	TMap<ESensorType, ASensor*> SensorTypes;

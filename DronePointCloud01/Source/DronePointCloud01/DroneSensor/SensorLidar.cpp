@@ -80,7 +80,7 @@ TEXT("defaul ON = 1\n"),
 ECVF_Cheat
 );
 
-static const float SecondDrawDefault = 0.2f;
+static const float SecondDrawDefault = 0.f;
 static const float DistanceDotSt = 10000;
 
 typedef FSensorCommon::FTMTrack FTMTrack;
@@ -600,6 +600,10 @@ void ASensorLidar::TickSensor(const float DeltaTime)
 	}
 	
 	TickVisualize(world, DeltaTime);
+	
+	TMSensorTracks.RemoveAll([&](FTMTrack& iter)
+		{ return FMath::Abs(TimeNowOnTick - iter.TimeTrack) > FSensorCommon::TimeLimitTrack; });
+	TMSensorTracks.Add(FTMTrack(TimeNowOnTick, GetTransform()));
 }
 
 void ASensorLidar::TickVisualizeByLineBatcher(UWorld* World, const float DeltaTime)

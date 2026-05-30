@@ -32,7 +32,9 @@ void ASensor::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 	
 	if (bIsActive == false)
+	{
 		return;
+	}
 	
 	ReadyToTick = true;
 	PreTickSensor(DeltaSeconds);

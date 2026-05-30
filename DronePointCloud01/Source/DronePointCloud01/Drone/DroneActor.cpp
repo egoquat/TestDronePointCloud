@@ -17,7 +17,10 @@ void ADroneActor::BeginPlay()
 
 	bool bparse = false;
 	bparse = FLidarSensorDescJsonParser::LoadFromJsonFile(FilePathSensorLidarDesc, lidarSensorDescriptionTest);
-	ensure(bparse);
+	if (bparse == false)
+	{
+		GLog->Logf(ELogVerbosity::Error, TEXT(">> false LoadFromJsonFile:%s"), *FilePathSensorLidarDesc);
+	}
 	
 	AddSensorLidar(lidarSensorDescriptionTest);
 }
